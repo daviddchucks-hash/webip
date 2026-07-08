@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: WebIP API specification - IP lookup and website inspection
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: ip
+    description: IP address lookup operations
+  - name: website
+    description: Website inspection operations
 paths:
   /healthz:
     get:
@@ -24,6 +28,67 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /ip-lookup:
+    get:
+      operationId: lookupIp
+      tags: [ip]
+      summary: Look up public information about an IP address
+      description: If `ip` is omitted, looks up the caller's public IP address.
+      parameters:
+        - name: ip
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: IP information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IpInfo"
+        "400":
+          description: Invalid IP address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Upstream lookup provider failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /website-inspect:
+    get:
+      operationId: inspectWebsite
+      tags: [website]
+      summary: Inspect a publicly accessible website
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Website inspection report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebsiteInspection"
+        "400":
+          description: Invalid or unreachable URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: The target website could not be fetched
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +98,265 @@ components:
           type: string
       required:
         - status
-
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    IpInfo:
+      type: object
+      required: [ip]
+      properties:
+        ip:
+          type: string
+        ipVersion:
+          type: ["string", "null"]
+        hostname:
+          type: ["string", "null"]
+        reverseDns:
+          type: ["string", "null"]
+        isp:
+          type: ["string", "null"]
+        asn:
+          type: ["string", "null"]
+        organization:
+          type: ["string", "null"]
+        continent:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        countryCode:
+          type: ["string", "null"]
+        region:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        postalCode:
+          type: ["string", "null"]
+        timezone:
+          type: ["string", "null"]
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
+        googleMapsUrl:
+          type: ["string", "null"]
+        currencyName:
+          type: ["string", "null"]
+        currencyCode:
+          type: ["string", "null"]
+        languages:
+          type: ["string", "null"]
+        network:
+          type: ["string", "null"]
+        connectionType:
+          type: ["string", "null"]
+        hostingProvider:
+          type: ["boolean", "null"]
+        isProxy:
+          type: ["boolean", "null"]
+        whois:
+          type: ["string", "null"]
+    KeyValue:
+      type: object
+      required: [key, value]
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+    DnsRecords:
+      type: object
+      properties:
+        a:
+          type: array
+          items:
+            type: string
+        aaaa:
+          type: array
+          items:
+            type: string
+        mx:
+          type: array
+          items:
+            type: string
+        ns:
+          type: array
+          items:
+            type: string
+        txt:
+          type: array
+          items:
+            type: string
+        cname:
+          type: array
+          items:
+            type: string
+    SslInfo:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        issuer:
+          type: ["string", "null"]
+        subject:
+          type: ["string", "null"]
+        validFrom:
+          type: ["string", "null"]
+        validTo:
+          type: ["string", "null"]
+        daysRemaining:
+          type: ["number", "null"]
+        protocol:
+          type: ["string", "null"]
+        error:
+          type: ["string", "null"]
+    HeadingGroup:
+      type: object
+      properties:
+        h1:
+          type: array
+          items:
+            type: string
+        h2:
+          type: array
+          items:
+            type: string
+        h3:
+          type: array
+          items:
+            type: string
+        h4:
+          type: array
+          items:
+            type: string
+        h5:
+          type: array
+          items:
+            type: string
+        h6:
+          type: array
+          items:
+            type: string
+    SeoFinding:
+      type: object
+      required: [severity, message]
+      properties:
+        severity:
+          type: string
+          enum: [good, warning, error]
+        message:
+          type: string
+    WebsiteInspection:
+      type: object
+      required: [requestedUrl, finalUrl, httpStatus]
+      properties:
+        requestedUrl:
+          type: string
+        finalUrl:
+          type: string
+        title:
+          type: ["string", "null"]
+        metaDescription:
+          type: ["string", "null"]
+        canonicalUrl:
+          type: ["string", "null"]
+        metaRobots:
+          type: ["string", "null"]
+        openGraph:
+          type: array
+          items:
+            $ref: "#/components/schemas/KeyValue"
+        twitterCard:
+          type: array
+          items:
+            $ref: "#/components/schemas/KeyValue"
+        charset:
+          type: ["string", "null"]
+        language:
+          type: ["string", "null"]
+        favicon:
+          type: ["string", "null"]
+        httpStatus:
+          type: number
+        responseHeaders:
+          type: array
+          items:
+            $ref: "#/components/schemas/KeyValue"
+        redirectChain:
+          type: array
+          items:
+            type: string
+        sslInfo:
+          $ref: "#/components/schemas/SslInfo"
+        dns:
+          $ref: "#/components/schemas/DnsRecords"
+        registrarInfo:
+          type: ["string", "null"]
+        robotsTxt:
+          type: ["string", "null"]
+        sitemapXml:
+          type: ["string", "null"]
+        internalLinks:
+          type: array
+          items:
+            type: string
+        externalLinks:
+          type: array
+          items:
+            type: string
+        cssFiles:
+          type: array
+          items:
+            type: string
+        jsFiles:
+          type: array
+          items:
+            type: string
+        images:
+          type: array
+          items:
+            type: string
+        fonts:
+          type: array
+          items:
+            type: string
+        formsCount:
+          type: number
+        buttonsCount:
+          type: number
+        tablesCount:
+          type: number
+        headings:
+          $ref: "#/components/schemas/HeadingGroup"
+        structuredData:
+          type: array
+          items:
+            type: string
+        jsonLd:
+          type: array
+          items:
+            type: string
+        technologies:
+          type: array
+          items:
+            type: string
+        analyticsDetected:
+          type: array
+          items:
+            type: string
+        seoAudit:
+          type: array
+          items:
+            $ref: "#/components/schemas/SeoFinding"
+        accessibilitySuggestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SeoFinding"
+        performanceSuggestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SeoFinding"
+        htmlSource:
+          type: string
