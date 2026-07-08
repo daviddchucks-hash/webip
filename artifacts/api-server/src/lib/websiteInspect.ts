@@ -1,7 +1,83 @@
 import dns from "node:dns/promises";
+import net from "node:net";
 import tls from "node:tls";
 import * as cheerio from "cheerio";
 import { logger } from "./logger";
+
+const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5 MB cap on any fetched response body
+const MAX_HTML_SOURCE_BYTES = 1 * 1024 * 1024; // 1 MB cap on htmlSource returned to clients
+
+/**
+ * Blocks SSRF: rejects hostnames that resolve to private, loopback,
+ * link-local, or other non-public IP ranges (including cloud metadata
+ * endpoints like 169.254.169.254). Must be re-validated on every redirect hop
+ * and on every auxiliary fetch (robots.txt, sitemap.xml), since DNS can
+ * rebind between checks.
+ */
+async function assertPublicHost(hostname: string): Promise<void> {
+  // Reject literal IP addresses/hostnames that are obviously unsafe before
+  // even resolving, in case dns lookups are bypassed by IP literals.
+  if (net.isIP(hostname)) {
+    if (isPrivateOrReservedIp(hostname)) {
+      throw new WebsiteInspectError("Refusing to fetch a private or reserved IP address");
+    }
+    return;
+  }
+
+  const lower = hostname.toLowerCase();
+  if (lower === "localhost" || lower.endsWith(".localhost") || lower.endsWith(".local")) {
+    throw new WebsiteInspectError("Refusing to fetch a local hostname");
+  }
+
+  let addresses: string[];
+  try {
+    const results = await dns.lookup(hostname, { all: true, verbatim: true });
+    addresses = results.map((r) => r.address);
+  } catch {
+    throw new WebsiteInspectError(`Could not resolve hostname "${hostname}"`);
+  }
+
+  if (addresses.length === 0) {
+    throw new WebsiteInspectError(`Could not resolve hostname "${hostname}"`);
+  }
+
+  for (const address of addresses) {
+    if (isPrivateOrReservedIp(address)) {
+      throw new WebsiteInspectError("Refusing to fetch a private or reserved IP address");
+    }
+  }
+}
+
+function isPrivateOrReservedIp(address: string): boolean {
+  const version = net.isIP(address);
+  if (version === 4) {
+    const parts = address.split(".").map(Number);
+    const [a, b] = parts;
+    if (a === 10) return true; // 10.0.0.0/8
+    if (a === 127) return true; // loopback
+    if (a === 0) return true; // "this" network
+    if (a === 169 && b === 254) return true; // link-local incl. cloud metadata
+    if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+    if (a === 192 && b === 168) return true; // 192.168.0.0/16
+    if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10 (CGNAT)
+    if (a === 198 && (b === 18 || b === 19)) return true; // benchmarking
+    if (a >= 224) return true; // multicast/reserved (224.0.0.0+)
+    return false;
+  }
+  if (version === 6) {
+    const lower = address.toLowerCase();
+    if (lower === "::1" || lower === "::") return true; // loopback / unspecified
+    if (lower.startsWith("fe80:") || lower.startsWith("fe8") || lower.startsWith("fe9") || lower.startsWith("fea") || lower.startsWith("feb")) return true; // link-local
+    if (lower.startsWith("fc") || lower.startsWith("fd")) return true; // unique local
+    if (lower.startsWith("::ffff:")) {
+      // IPv4-mapped IPv6 address; check the embedded IPv4 part
+      const mapped = lower.split(":").pop() ?? "";
+      if (net.isIP(mapped) === 4) return isPrivateOrReservedIp(mapped);
+    }
+    return false;
+  }
+  return true; // unknown format -- fail closed
+}
 
 export interface KeyValue {
   key: string;
@@ -82,7 +158,11 @@ export interface WebsiteInspectionResult {
   htmlSource: string;
 }
 
+/** Client-fault error: invalid/unsafe input. Maps to HTTP 400. */
 export class WebsiteInspectError extends Error {}
+
+/** Upstream-fault error: the target site could not be reached. Maps to HTTP 502. */
+export class WebsiteFetchError extends Error {}
 
 function normalizeUrl(input: string): URL {
   let candidate = input.trim();
@@ -94,6 +174,42 @@ function normalizeUrl(input: string): URL {
   } catch {
     throw new WebsiteInspectError(`"${input}" is not a valid URL`);
   }
+}
+
+/** Rejects any scheme other than http/https, and re-validates the resolved
+ * host against the SSRF blocklist -- must be called before every fetch,
+ * including each redirect hop, since redirects can point anywhere. */
+async function assertSafeToFetch(url: URL): Promise<void> {
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new WebsiteInspectError(`Unsupported URL scheme "${url.protocol}"`);
+  }
+  await assertPublicHost(url.hostname);
+}
+
+/** Reads a fetch Response body up to a byte cap, aborting the stream once
+ * exceeded rather than buffering unbounded data into memory. */
+async function readBodyCapped(res: Response, maxBytes: number): Promise<string> {
+  if (!res.body) return "";
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        total += value.byteLength;
+        if (total > maxBytes) {
+          await reader.cancel();
+          break;
+        }
+        chunks.push(value);
+      }
+    }
+  } finally {
+    reader.releaseLock?.();
+  }
+  return Buffer.concat(chunks.map((c) => Buffer.from(c))).toString("utf8");
 }
 
 async function fetchWithRedirects(
@@ -109,6 +225,8 @@ async function fetchWithRedirects(
   let current = startUrl;
 
   for (let i = 0; i < 10; i++) {
+    await assertSafeToFetch(current);
+
     const res = await fetch(current.toString(), {
       redirect: "manual",
       signal: AbortSignal.timeout(12000),
@@ -121,7 +239,7 @@ async function fetchWithRedirects(
     if ([301, 302, 303, 307, 308].includes(res.status)) {
       const location = res.headers.get("location");
       if (!location) {
-        const body = await res.text();
+        const body = await readBodyCapped(res, MAX_BODY_BYTES);
         return { finalUrl: current.toString(), status: res.status, headers: res.headers, body, redirectChain };
       }
       redirectChain.push(current.toString());
@@ -129,7 +247,7 @@ async function fetchWithRedirects(
       continue;
     }
 
-    const body = await res.text();
+    const body = await readBodyCapped(res, MAX_BODY_BYTES);
     return { finalUrl: current.toString(), status: res.status, headers: res.headers, body, redirectChain };
   }
 
@@ -138,12 +256,14 @@ async function fetchWithRedirects(
 
 async function fetchTextSafe(url: string): Promise<string | null> {
   try {
-    const res = await fetch(url, {
+    const target = new URL(url);
+    await assertSafeToFetch(target);
+    const res = await fetch(target.toString(), {
       signal: AbortSignal.timeout(6000),
       headers: { "User-Agent": "Mozilla/5.0 (compatible; WebIPBot/1.0)" },
     });
     if (!res.ok) return null;
-    return await res.text();
+    return await readBodyCapped(res, MAX_BODY_BYTES);
   } catch {
     return null;
   }
@@ -312,7 +432,11 @@ export async function inspectWebsite(inputUrl: string): Promise<WebsiteInspectio
     fetched = await fetchWithRedirects(url);
   } catch (err) {
     logger.warn({ err, url: inputUrl }, "website fetch failed");
-    throw new WebsiteInspectError(
+    // WebsiteInspectError means the input itself was rejected (invalid
+    // scheme, SSRF-blocked host, unresolvable hostname, etc.) -- that is a
+    // client-fault (400). Anything else is a network/upstream failure (502).
+    if (err instanceof WebsiteInspectError) throw err;
+    throw new WebsiteFetchError(
       err instanceof Error ? err.message : "Failed to fetch the requested website",
     );
   }
@@ -578,6 +702,9 @@ export async function inspectWebsite(inputUrl: string): Promise<WebsiteInspectio
     seoAudit,
     accessibilitySuggestions,
     performanceSuggestions,
-    htmlSource: fetched.body,
+    htmlSource:
+      Buffer.byteLength(fetched.body, "utf8") > MAX_HTML_SOURCE_BYTES
+        ? `${fetched.body.slice(0, MAX_HTML_SOURCE_BYTES)}\n\n<!-- truncated: source exceeded ${MAX_HTML_SOURCE_BYTES / 1024}KB -->`
+        : fetched.body,
   };
 }

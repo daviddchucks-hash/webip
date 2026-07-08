@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { InspectWebsiteQueryParams, InspectWebsiteResponse } from "@workspace/api-zod";
-import { inspectWebsite, WebsiteInspectError } from "../lib/websiteInspect";
+import { inspectWebsite, WebsiteFetchError, WebsiteInspectError } from "../lib/websiteInspect";
 
 const router: IRouter = Router();
 
@@ -17,6 +17,10 @@ router.get("/website-inspect", async (req, res): Promise<void> => {
   } catch (err) {
     if (err instanceof WebsiteInspectError) {
       res.status(400).json({ error: err.message });
+      return;
+    }
+    if (err instanceof WebsiteFetchError) {
+      res.status(502).json({ error: err.message || "Failed to reach the requested website" });
       return;
     }
     req.log.error({ err, url: parsed.data.url }, "Website inspection failed");
