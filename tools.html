@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Network Tools — WebIP</title>
+<meta name="description" content="Free network toolkit: DNS propagation checker, traceroute, ping test, port scanner, WHOIS lookup, CIDR calculator, subnet calculator, MAC vendor lookup.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://webip.drexxora.name.ng/tools.html">
+<meta property="og:title" content="Network Tools — WebIP">
+<meta property="og:description" content="DNS propagation, traceroute, ping, port scan, WHOIS, CIDR/subnet calculators and MAC vendor lookup — all free.">
+<meta property="og:url" content="https://webip.drexxora.name.ng/tools.html">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="hdr">
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="logo-tag">WebIP</span> Network Inspector</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="ip.html">IP Lookup</a>
+      <a href="website.html">Website</a>
+      <a href="tools.html" class="active">Network Tools</a>
+      <a href="history.html">History</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap page">
+  <div class="search-box">
+    <h1>Network Tools</h1>
+    <p class="sub">DNS propagation, traceroute, ping, port scan, WHOIS/RDAP and calculators — all running client-side via free CORS-enabled APIs.</p>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar" id="tools-tabs" style="flex-wrap:wrap">
+    <button class="tab on" data-tab="dnsprop">DNS Propagation</button>
+    <button class="tab" data-tab="traceroute">Traceroute</button>
+    <button class="tab" data-tab="ping">Ping Test</button>
+    <button class="tab" data-tab="portscan">Port Scanner</button>
+    <button class="tab" data-tab="whois">WHOIS</button>
+    <button class="tab" data-tab="cidr">CIDR Calculator</button>
+    <button class="tab" data-tab="subnet">Subnet Calculator</button>
+    <button class="tab" data-tab="macvendor">MAC Vendor</button>
+  </div>
+
+  <!-- ── DNS PROPAGATION ── -->
+  <div class="tab-panel on" id="t-dnsprop">
+    <div class="card">
+      <div class="card-hdr"><div class="cicon ci-cyan">🌍</div><h3>DNS Propagation Checker</h3></div>
+      <p class="note" style="margin-bottom:12px">Compares the DNS answer returned by Google, Cloudflare and Quad9 resolvers — useful for checking whether a DNS change has propagated globally.</p>
+      <div class="row">
+        <div class="inp-wrap"><input type="text" id="dp-domain" placeholder="e.g. example.com"></div>
+        <select id="dp-type" class="btn btn-s" style="min-width:100px">
+          <option value="A">A</option><option value="AAAA">AAAA</option><option value="MX">MX</option>
+          <option value="TXT">TXT</option><option value="NS">NS</option><option value="CNAME">CNAME</option>
+        </select>
+        <button class="btn btn-p" id="dp-btn">Check</button>
+      </div>
+      <div id="dp-results" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <!-- ── TRACEROUTE ── -->
+  <div class="tab-panel" id="t-traceroute">
+    <div class="card">
+      <div class="card-hdr"><div class="cicon ci-purple">🛰️</div><h3>Traceroute</h3></div>
+      <p class="note" style="margin-bottom:12px">Runs a server-side traceroute (via HackerTarget's free API — limited requests/day) and returns the hop list.</p>
+      <div class="row">
+        <div class="inp-wrap"><input type="text" id="tr-host" placeholder="e.g. example.com or 8.8.8.8"></div>
+        <button class="btn btn-p" id="tr-btn">Trace</button>
+      </div>
+      <div class="src-wrap gap" style="margin-top:16px">
+        <pre class="src-pre" id="tr-out" style="max-height:360px">Results will appear here…</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PING ── -->
+  <div class="tab-panel" id="t-ping">
+    <div class="card">
+      <div class="card-hdr"><div class="cicon ci-green">📶</div><h3>Ping Test (HTTP Latency)</h3></div>
+      <p class="note" style="margin-bottom:12px">Browsers cannot send raw ICMP pings. This measures HTTPS round-trip latency instead — a practical proxy for reachability and responsiveness.</p>
+      <div class="row">
+        <div class="inp-wrap"><input type="text" id="pg-host" placeholder="e.g. example.com"></div>
+        <button class="btn btn-p" id="pg-btn">Ping (4x)</button>
+      </div>
+      <div id="pg-results" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <!-- ── PORT SCANNER ── -->
+  <div class="tab-panel" id="t-portscan">
+    <div class="card">
+      <div class="card-hdr"><div class="cicon ci-amber">🔓</div><h3>Port Scanner</h3></div>
+      <p class="note" style="margin-bottom:6px">⚠ Best-effort browser probe of common web ports only. Browsers block raw sockets and many ports (21, 22, 23, 25…) outright, so this cannot replace a real scanner like nmap. <b>Only scan targets you own or are authorized to test.</b></p>
+      <label style="display:flex;gap:8px;align-items:center;margin:14px 0;font-size:13.5px;color:var(--muted-l)">
+        <input type="checkbox" id="ps-consent" style="width:16px;height:16px">
+        I own this target or have explicit authorization to test it.
+      </label>
+      <div class="row">
+        <div class="inp-wrap"><input type="text" id="ps-host" placeholder="e.g. example.com" disabled></div>
+        <button class="btn btn-p" id="ps-btn" disabled>Scan Common Ports</button>
+      </div>
+      <div id="ps-results" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <!-- ── WHOIS ── -->
+  <div class="tab-panel" id="t-whois">
+    <div class="card">
+      <div class="card-hdr"><div class="cicon ci-cyan">📄</div><h3>WHOIS / RDAP Lookup</h3></div>
+      <p class="note" style="margin-bottom:12px">Uses RDAP (the modern WHOIS replacement) — works for domains and IP addresses, free and CORS-enabled.</p>
+      <div class="row">
+        <div class="inp-wrap"><input type="text" id="wh-query" placeholder="e.g. example.com or 8.8.8.8"></div>
+        <button class="btn btn-p" id="wh-btn">Look Up</button>
+      </div>
+      <div id="wh-results" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <!-- ── CIDR CALCULATOR ── -->
+  <div class="tab-panel" id="t-cidr">
+    <div class="card">
+      <div class="card-hdr"><div class="cicon ci-purple">🧮</div><h3>CIDR Calculator</h3></div>
+      <div class="row">
+        <div class="inp-wrap"><input type="text" id="cidr-input" placeholder="e.g. 192.168.1.0/24"></div>
+        <button class="btn btn-p" id="cidr-btn">Calculate</button>
+      </div>
+      <div id="cidr-results" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <!-- ── SUBNET CALCULATOR ── -->
+  <div class="tab-panel" id="t-subnet">
+    <div class="card">
+      <div class="card-hdr"><div class="cicon ci-green">🧩</div><h3>Subnet Calculator</h3></div>
+      <div class="row">
+        <div class="inp-wrap"><input type="text" id="sn-ip" placeholder="IP e.g. 192.168.1.10"></div>
+        <div class="inp-wrap"><input type="text" id="sn-mask" placeholder="Mask e.g. 255.255.255.0 or /24"></div>
+        <button class="btn btn-p" id="sn-btn">Calculate</button>
+      </div>
+      <div id="sn-results" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <!-- ── MAC VENDOR ── -->
+  <div class="tab-panel" id="t-macvendor">
+    <div class="card">
+      <div class="card-hdr"><div class="cicon ci-amber">🏷️</div><h3>MAC Address Vendor Lookup</h3></div>
+      <p class="note" style="margin-bottom:12px">Identifies the manufacturer (OUI) that a MAC address was assigned to.</p>
+      <div class="row">
+        <div class="inp-wrap"><input type="text" id="mv-mac" placeholder="e.g. 3C:22:FB:00:00:00"></div>
+        <button class="btn btn-p" id="mv-btn">Look Up Vendor</button>
+      </div>
+      <div id="mv-results" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <a href="index.html">WebIP</a> &nbsp;·&nbsp;
+    DNS via Google &amp; Cloudflare DoH &nbsp;·&nbsp; RDAP via rdap.org &nbsp;·&nbsp;
+    Traceroute via HackerTarget &nbsp;·&nbsp; Free &amp; no tracking
+  </div>
+</footer>
+
+<div id="toasts"></div>
+<script type="module" src="js/tools.js"></script>
+</body>
+</html>

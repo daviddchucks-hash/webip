@@ -12,6 +12,7 @@
 <meta property="og:url" content="https://webip.drexxora.name.ng/ip.html">
 <link rel="icon" href="favicon.ico">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -23,6 +24,7 @@
       <a href="index.html">Home</a>
       <a href="ip.html" class="active">IP Lookup</a>
       <a href="website.html">Website</a>
+      <a href="tools.html">Network Tools</a>
       <a href="history.html">History</a>
     </nav>
   </div>
@@ -70,6 +72,7 @@
           <h3>Geolocation</h3>
         </div>
         <table class="kv" id="geo-kv"></table>
+        <div id="geo-map" style="height:220px;border-radius:10px;margin-top:14px;overflow:hidden;display:none"></div>
       </div>
 
       <!-- Network card -->
@@ -82,19 +85,37 @@
       </div>
     </div>
 
-    <!-- External tools note -->
+    <div class="g2" style="margin-top:20px">
+      <!-- Hostname / reverse DNS -->
+      <div class="card">
+        <div class="card-hdr">
+          <div class="cicon ci-cyan">🔄</div>
+          <h3>Hostname &amp; Reverse DNS</h3>
+        </div>
+        <div id="rdns-box"><p class="note">Looking up PTR record…</p></div>
+      </div>
+
+      <!-- Reverse IP lookup -->
+      <div class="card">
+        <div class="card-hdr">
+          <div class="cicon ci-amber">🏘️</div>
+          <h3>Reverse IP Lookup</h3>
+        </div>
+        <p style="color:var(--muted-l);font-size:13px;margin-bottom:10px">Other domains hosted on this same IP address.</p>
+        <button class="btn btn-s btn-sm" id="revip-btn">Find Domains on This IP</button>
+        <div id="revip-box" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- WHOIS -->
     <div class="card" style="margin-top:20px">
       <div class="card-hdr">
         <div class="cicon ci-amber">📄</div>
-        <h3>WHOIS &amp; Reverse DNS</h3>
+        <h3>WHOIS / RDAP</h3>
       </div>
-      <p style="color:var(--muted-l);font-size:13.5px;margin-bottom:14px">
-        WHOIS (TCP port 43) and reverse DNS require server-side access and cannot run in the browser.
-        Use these free external tools:
-      </p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <a class="btn btn-s btn-sm" id="whois-link" href="#" target="_blank" rel="noreferrer">🔍 WHOIS Lookup →</a>
-        <a class="btn btn-s btn-sm" id="rdns-link" href="#" target="_blank" rel="noreferrer">🔄 Reverse DNS →</a>
+      <div id="whois-box"><p class="note">Fetching registration data…</p></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <a class="btn btn-s btn-sm" id="whois-link" href="#" target="_blank" rel="noreferrer">🔍 Full WHOIS →</a>
         <a class="btn btn-s btn-sm" href="https://www.shodan.io/" target="_blank" rel="noreferrer">🛡 Shodan →</a>
         <a class="btn btn-s btn-sm" href="https://bgp.he.net/" target="_blank" rel="noreferrer">🌐 BGP.he.net →</a>
       </div>
@@ -111,6 +132,7 @@
 </footer>
 
 <div id="toasts"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module" src="js/ip.js"></script>
 </body>
 </html>

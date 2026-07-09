@@ -156,3 +156,75 @@ export function dnsSection(label, records) {
     : '<div class="dns-nil">No records found</div>';
   return `<div class="dns-sec"><h4>${label}</h4><div class="dns-recs">${recs}</div></div>`;
 }
+
+// ── IPv4 <-> 32-bit integer ────────────────────────────────────
+export function ipToLong(ip) {
+  const p = ip.split('.').map(Number);
+  if (p.length !== 4 || p.some(n => isNaN(n) || n < 0 || n > 255)) return null;
+  return ((p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]) >>> 0;
+}
+export function longToIp(n) {
+  return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+}
+export function prefixToMask(p) {
+  return p <= 0 ? 0 : ((0xFFFFFFFF << (32 - p)) >>> 0);
+}
+export function maskToPrefix(mask) {
+  const n = ipToLong(mask);
+  if (n == null) return null;
+  let bits = 0, x = n;
+  for (let i = 31; i >= 0; i--) { if ((x >>> i) & 1) bits++; else break; }
+  // verify contiguous mask
+  return (prefixToMask(bits) === n) ? bits : null;
+}
+export function isPrivateIp4(ip) {
+  const n = ipToLong(ip);
+  if (n == null) return false;
+  const ranges = [
+    ['10.0.0.0', 8], ['172.16.0.0', 12], ['192.168.0.0', 16],
+    ['127.0.0.0', 8], ['169.254.0.0', 16], ['100.64.0.0', 10],
+  ];
+  return ranges.some(([base, p]) => {
+    const m = prefixToMask(p);
+    return (n & m) === (ipToLong(base) & m);
+  });
+}
+export function ipClass4(ip) {
+  const first = +ip.split('.')[0];
+  if (isNaN(first)) return '—';
+  if (first < 128) return 'A';
+  if (first < 192) return 'B';
+  if (first < 224) return 'C';
+  if (first < 240) return 'D (Multicast)';
+  return 'E (Reserved)';
+}
+
+// ── Reverse-DNS PTR name builder ──────────────────────────────
+export function ptrName(ip) {
+  if (ip.includes(':')) {
+    // IPv6 → expand and reverse nibbles
+    const full = expandIPv6(ip);
+    if (!full) return null;
+    const nibbles = full.replace(/:/g, '').split('').reverse().join('.');
+    return `${nibbles}.ip6.arpa`;
+  }
+  const parts = ip.split('.');
+  if (parts.length !== 4) return null;
+  return `${parts.reverse().join('.')}.in-addr.arpa`;
+}
+export function expandIPv6(ip) {
+  try {
+    let [head, tail] = ip.split('::');
+    let headParts = head ? head.split(':') : [];
+    let tailParts = tail ? tail.split(':') : [];
+    if (ip.includes('::')) {
+      const missing = 8 - headParts.length - tailParts.length;
+      headParts = [...headParts, ...Array(missing).fill('0')];
+    } else {
+      headParts = ip.split(':');
+      if (headParts.length !== 8) return null;
+    }
+    const all = [...headParts, ...tailParts].map(p => p.padStart(4, '0'));
+    return all.length === 8 ? all.join(':') : null;
+  } catch { return null; }
+}

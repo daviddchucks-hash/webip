@@ -7,10 +7,15 @@
 // ============================================================
 
 import { toast, copy, dlJson, esc, addHistory, validIp, ipVer, flag,
-         markActiveNav, kvRows, dnsSection, auditHtml } from './utils.js';
+         markActiveNav, kvRows, dnsSection, auditHtml, ptrName } from './utils.js';
 
 const IPIFY  = 'https://api64.ipify.org?format=json';
 const IPWHO  = ip => `https://ipwho.is/${encodeURIComponent(ip)}`;
+const DOH    = (name, type) => `https://dns.google/resolve?name=${encodeURIComponent(name)}&type=${type}`;
+const RDAP_IP  = ip => `https://rdap.org/ip/${encodeURIComponent(ip)}`;
+const REVIP    = ip => `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://api.hackertarget.com/reverseiplookup/?q=${ip}`)}`;
+
+let map = null, marker = null;
 
 // ── DOM refs ──────────────────────────────────────────────────
 const $  = id => document.getElementById(id);
@@ -146,12 +151,110 @@ function render(d) {
 
   // WHOIS — link to external service
   $('whois-link').href = `https://www.whois.com/whois/${encodeURIComponent(d.ip)}`;
-  $('rdns-link').href  = `https://mxtoolbox.com/ReverseLookup.aspx?domain=${encodeURIComponent(d.ip)}`;
+
+  // Map
+  renderMap(d.latitude, d.longitude, d.city, d.country);
+
+  // Reverse DNS (automatic)
+  loadReverseDns(d.ip);
+
+  // WHOIS via RDAP (automatic, best-effort)
+  loadWhoisRdap(d.ip);
+
+  // Reverse IP lookup — on demand (rate-limited free API)
+  $('revip-box').innerHTML = '';
+  $('revip-btn').onclick = () => loadReverseIp(d.ip);
 
   resultsEl.classList.add('on');
   lookupBtn.disabled = false;
   lookupBtn.textContent = 'Look Up';
   setTimeout(() => resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+}
+
+// ── Map ──────────────────────────────────────────────────────
+function renderMap(lat, lon, city, country) {
+  const box = $('geo-map');
+  if (lat == null || lon == null || typeof L === 'undefined') { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  if (!map) {
+    map = L.map('geo-map', { zoomControl: true, attributionControl: true });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18, attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+  }
+  map.setView([lat, lon], 10);
+  if (marker) marker.remove();
+  marker = L.marker([lat, lon]).addTo(map).bindPopup([city, country].filter(Boolean).join(', ') || 'Location').openPopup();
+  setTimeout(() => map.invalidateSize(), 150);
+}
+
+// ── Reverse DNS via Google DoH PTR query ───────────────────────
+async function loadReverseDns(ip) {
+  const box = $('rdns-box');
+  const name = ptrName(ip);
+  if (!name) { box.innerHTML = '<p class="note">Reverse DNS not supported for this address.</p>'; return; }
+  box.innerHTML = '<p class="note">Looking up PTR record…</p>';
+  try {
+    const r = await fetch(DOH(name, 'PTR'), { signal: AbortSignal.timeout(8000) });
+    const d = await r.json();
+    const hosts = (d.Answer || []).filter(a => a.type === 12).map(a => a.data.replace(/\.$/, ''));
+    box.innerHTML = hosts.length
+      ? kvHtml('Hostname', hosts.join('<br>'))
+      : '<p class="note">No PTR record found for this IP.</p>';
+  } catch {
+    box.innerHTML = '<p class="note">Could not resolve PTR record.</p>';
+  }
+}
+
+// ── Reverse IP lookup (domains sharing this IP) ────────────────
+async function loadReverseIp(ip) {
+  const box = $('revip-box');
+  const btn = $('revip-btn');
+  btn.disabled = true; btn.textContent = 'Looking up…';
+  box.innerHTML = '';
+  try {
+    const r = await fetch(REVIP(ip), { signal: AbortSignal.timeout(12000) });
+    const text = (await r.text()).trim();
+    if (!text || /error|no dns|api count exceeded/i.test(text)) {
+      box.innerHTML = `<p class="note">${esc(text || 'No other domains found on this IP, or lookup limit reached.')}</p>`;
+    } else {
+      const domains = text.split('\n').map(s => s.trim()).filter(Boolean);
+      box.innerHTML = `<div class="pills gap">${domains.slice(0, 60).map(d => `<span class="pill">${esc(d)}</span>`).join('')}</div>` +
+        (domains.length > 60 ? `<p class="note" style="margin-top:8px">+${domains.length - 60} more</p>` : '');
+    }
+  } catch {
+    box.innerHTML = '<p class="note">Reverse IP lookup failed or rate-limited. Try again later.</p>';
+  } finally { btn.disabled = false; btn.textContent = 'Find Domains on This IP'; }
+}
+
+// ── WHOIS via RDAP ───────────────────────────────────────────
+async function loadWhoisRdap(ip) {
+  const box = $('whois-box');
+  box.innerHTML = '<p class="note">Fetching registration data…</p>';
+  try {
+    const r = await fetch(RDAP_IP(ip), { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) throw new Error('not found');
+    const d = await r.json();
+    const reg = (d.events || []).find(e => e.eventAction === 'registration')?.eventDate;
+    const changed = (d.events || []).find(e => e.eventAction === 'last changed')?.eventDate;
+    const org = d.entities?.[0]?.vcardArray?.[1]?.find(v => v[0] === 'fn')?.[3] || d.name;
+    box.innerHTML = `<table class="kv">${kvRows([
+      ['Network Name', d.name],
+      ['Organization', org],
+      ['Range',        d.startAddress && d.endAddress ? `${d.startAddress} – ${d.endAddress}` : null, true],
+      ['CIDR',          (d.cidr0_cidrs || []).map(c => `${c.v4prefix || c.v6prefix}/${c.length}`).join(', ') || null, true],
+      ['Country',      d.country],
+      ['Type',         d.type],
+      ['Registered',   reg ? new Date(reg).toLocaleDateString() : null],
+      ['Last Changed', changed ? new Date(changed).toLocaleDateString() : null],
+    ])}</table>`;
+  } catch {
+    box.innerHTML = '<p class="note">RDAP lookup unavailable for this address. Use "Full WHOIS" below.</p>';
+  }
+}
+
+function kvHtml(k, v) {
+  return `<table class="kv"><tr><td>${esc(k)}</td><td>${v}</td></tr></table>`;
 }
 
 // ── State helpers ─────────────────────────────────────────────
