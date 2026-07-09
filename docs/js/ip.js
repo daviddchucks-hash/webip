@@ -19,7 +19,6 @@ const lookupBtn= $('lookup-btn');
 const ownBtn   = $('own-btn');
 const resultsEl= $('results');
 const errEl    = $('err-box');
-const loadEl   = $('loading');
 
 let data = null;
 
