@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IP Lookup — WebIP</title>
+<meta name="description" content="Look up any IPv4 or IPv6 address: geolocation, ISP, ASN, organization, timezone, coordinates and more. Free, no sign-up.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://webip.drexxora.name.ng/ip.html">
+<meta property="og:title" content="IP Lookup — WebIP">
+<meta property="og:description" content="Free IP address lookup: geolocation, ISP, ASN, organization, timezone and more.">
+<meta property="og:url" content="https://webip.drexxora.name.ng/ip.html">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="hdr">
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="logo-tag">WebIP</span> Network Inspector</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="ip.html" class="active">IP Lookup</a>
+      <a href="website.html">Website</a>
+      <a href="history.html">History</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap page">
+  <div class="search-box">
+    <h1>IP Address Lookup</h1>
+    <p class="sub">Enter any IPv4 or IPv6 address, or click "My IP" to look up your own public address.</p>
+    <div class="row">
+      <div class="inp-wrap">
+        <input type="text" id="ip-input" placeholder="e.g. 8.8.8.8 or 2001:4860:4860::8888" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="btn btn-s" id="own-btn">📍 My IP</button>
+      <button class="btn btn-p" id="lookup-btn">Look Up</button>
+    </div>
+  </div>
+
+  <div class="err-box" id="err-box" style="display:none"></div>
+
+  <div id="results">
+    <!-- IP hero strip -->
+    <div class="ip-hero">
+      <div class="ip-flag" id="res-flag">🌐</div>
+      <div class="ip-main" style="flex:1">
+        <h2 id="res-ip" class="mono">—</h2>
+        <div class="ip-meta">
+          <span id="res-ver" class="badge b-cyan" style="margin-right:8px">IPv4</span>
+          <span id="res-loc">—</span>
+        </div>
+        <div class="ip-actions">
+          <a class="map-btn" id="map-btn" href="#" target="_blank" rel="noreferrer" style="display:none">📍 Open in Google Maps</a>
+          <button class="btn btn-s btn-sm" id="copy-json">Copy JSON</button>
+          <button class="btn btn-s btn-sm" id="dl-json">⬇ Download JSON</button>
+          <a class="btn btn-g btn-sm" href="history.html">🕐 History</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="g2">
+      <!-- Geolocation card -->
+      <div class="card">
+        <div class="card-hdr">
+          <div class="cicon ci-cyan">📍</div>
+          <h3>Geolocation</h3>
+        </div>
+        <table class="kv" id="geo-kv"></table>
+      </div>
+
+      <!-- Network card -->
+      <div class="card">
+        <div class="card-hdr">
+          <div class="cicon ci-purple">🔗</div>
+          <h3>Network &amp; ISP</h3>
+        </div>
+        <table class="kv" id="net-kv"></table>
+      </div>
+    </div>
+
+    <!-- External tools note -->
+    <div class="card" style="margin-top:20px">
+      <div class="card-hdr">
+        <div class="cicon ci-amber">📄</div>
+        <h3>WHOIS &amp; Reverse DNS</h3>
+      </div>
+      <p style="color:var(--muted-l);font-size:13.5px;margin-bottom:14px">
+        WHOIS (TCP port 43) and reverse DNS require server-side access and cannot run in the browser.
+        Use these free external tools:
+      </p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn btn-s btn-sm" id="whois-link" href="#" target="_blank" rel="noreferrer">🔍 WHOIS Lookup →</a>
+        <a class="btn btn-s btn-sm" id="rdns-link" href="#" target="_blank" rel="noreferrer">🔄 Reverse DNS →</a>
+        <a class="btn btn-s btn-sm" href="https://www.shodan.io/" target="_blank" rel="noreferrer">🛡 Shodan →</a>
+        <a class="btn btn-s btn-sm" href="https://bgp.he.net/" target="_blank" rel="noreferrer">🌐 BGP.he.net →</a>
+      </div>
+    </div>
+  </div><!-- #results -->
+</main>
+
+<footer>
+  <div class="wrap">
+    <a href="index.html">WebIP</a> &nbsp;·&nbsp;
+    IP data via <a href="https://ipwho.is" target="_blank" rel="noreferrer">ipwho.is</a> &nbsp;·&nbsp;
+    Free &amp; no tracking
+  </div>
+</footer>
+
+<div id="toasts"></div>
+<script type="module" src="js/ip.js"></script>
+</body>
+</html>

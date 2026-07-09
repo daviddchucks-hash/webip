@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WebIP — IP & Website Inspector</title>
+<meta name="description" content="Free developer tool for IP address intelligence and website inspection. Lookup geolocation, ISP, ASN, DNS, SSL, SEO, and page structure — instantly.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://webip.drexxora.name.ng/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://webip.drexxora.name.ng/">
+<meta property="og:title" content="WebIP — IP & Website Inspector">
+<meta property="og:description" content="Free developer tool: look up any IP address or inspect any website's SEO, DNS, SSL, headers and tech stack.">
+<meta property="og:image" content="https://webip.drexxora.name.ng/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="WebIP — IP & Website Inspector">
+<meta name="twitter:description" content="Free developer tool: IP geolocation, ASN, DNS, SEO, SSL and more.">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="css/style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="hdr">
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="logo-tag">WebIP</span> Network Inspector</a>
+    <nav>
+      <a href="index.html" class="active">Home</a>
+      <a href="ip.html">IP Lookup</a>
+      <a href="website.html">Website</a>
+      <a href="history.html">History</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap page">
+  <section class="hero">
+    <h1>Know Your <em>Network</em><br>Inspect Any <em>Website</em></h1>
+    <p>A free diagnostics tool for developers and sysadmins. IP intelligence, DNS records, SSL info, SEO audit — all in one place.</p>
+    <div class="hero-btns">
+      <a class="btn btn-p" href="ip.html">🌐 IP Lookup</a>
+      <a class="btn btn-s" href="website.html">🔍 Website Inspector</a>
+    </div>
+
+    <div class="feat-grid">
+      <a class="feat-card" href="ip.html">
+        <div class="fi ci-cyan">🌐</div>
+        <h2>IP Lookup</h2>
+        <p>Look up any IPv4 or IPv6 address — or detect your own. See geolocation, ISP, ASN, organisation and network details.</p>
+        <ul class="feat-list">
+          <li>Geolocation with Google Maps link</li>
+          <li>ISP, ASN &amp; organisation</li>
+          <li>Country, region, city, timezone</li>
+          <li>Calling code, capital, EU status</li>
+          <li>WHOIS via external link</li>
+          <li>Copy &amp; download as JSON</li>
+        </ul>
+      </a>
+      <a class="feat-card" href="website.html">
+        <div class="fi ci-purple">🔍</div>
+        <h2>Website Inspector</h2>
+        <p>Enter any public URL to get a full technical report — SEO tags, DNS records, SSL status, tech stack, links and page structure.</p>
+        <ul class="feat-list">
+          <li>SEO, accessibility &amp; performance audit</li>
+          <li>Open Graph &amp; Twitter Card tags</li>
+          <li>DNS records (A, AAAA, MX, NS, TXT, CNAME)</li>
+          <li>SSL / HTTPS status</li>
+          <li>Technology &amp; analytics detection</li>
+          <li>Link &amp; asset inventory + HTML source</li>
+        </ul>
+      </a>
+    </div>
+  </section>
+
+  <section style="margin-top:48px">
+    <p class="sec-lbl">Quick Lookup</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <form action="ip.html" method="get" style="display:flex;gap:8px;flex:1;min-width:260px">
+        <input type="text" name="ip" placeholder="Enter any IP address…" style="flex:1">
+        <button class="btn btn-p" type="submit">Look Up IP</button>
+      </form>
+      <form action="website.html" method="get" style="display:flex;gap:8px;flex:1;min-width:260px">
+        <input type="url" name="url" placeholder="Enter a website URL…" style="flex:1">
+        <button class="btn btn-s" type="submit">Inspect Site</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a href="https://webip.drexxora.name.ng">webip.drexxora.name.ng</a> &nbsp;·&nbsp;
+    Free &amp; open · No tracking · No ads &nbsp;·&nbsp;
+    <a href="https://github.com/daviddchucks-hash/webip">GitHub</a>
+  </div>
+</footer>
+
+<div id="toasts"></div>
+</body>
+</html>

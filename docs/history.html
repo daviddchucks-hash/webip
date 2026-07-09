@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>History — WebIP</title>
+<meta name="description" content="Your local search history and favorites for IP lookups and website inspections on WebIP.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="hdr">
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="logo-tag">WebIP</span> Network Inspector</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="ip.html">IP Lookup</a>
+      <a href="website.html">Website</a>
+      <a href="history.html" class="active">History</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap page">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+    <div>
+      <h1 style="font-size:20px;font-weight:700">History &amp; Favorites</h1>
+      <p style="color:var(--muted-l);font-size:13.5px;margin-top:2px">Stored locally in your browser — never sent anywhere.</p>
+    </div>
+    <button class="btn btn-g btn-sm" id="clear-btn" style="margin-left:auto">🗑 Clear All</button>
+  </div>
+
+  <!-- Filter tabs -->
+  <div class="tab-bar" style="margin-bottom:20px">
+    <button class="hf-tab tab on" data-f="all">All</button>
+    <button class="hf-tab tab" data-f="ip">🌐 IP Lookups</button>
+    <button class="hf-tab tab" data-f="website">🔍 Websites</button>
+    <button class="hf-tab tab" data-f="fav">⭐ Favorites</button>
+  </div>
+
+  <div class="hist-list" id="hist-list"></div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a href="index.html">WebIP</a> &nbsp;·&nbsp;
+    History is stored in localStorage &nbsp;·&nbsp;
+    <a href="https://webip.drexxora.name.ng">webip.drexxora.name.ng</a>
+  </div>
+</footer>
+
+<div id="toasts"></div>
+<script type="module" src="js/history.js"></script>
+</body>
+</html>

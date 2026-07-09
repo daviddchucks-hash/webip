@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Website Inspector — WebIP</title>
+<meta name="description" content="Inspect any public website: SEO tags, Open Graph, DNS records, SSL status, HTTP headers, tech stack, link inventory, accessibility and performance audit.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://webip.drexxora.name.ng/website.html">
+<meta property="og:title" content="Website Inspector — WebIP">
+<meta property="og:description" content="Full website audit: SEO, DNS, SSL, headers, tech detection, link inventory and HTML source viewer.">
+<meta property="og:url" content="https://webip.drexxora.name.ng/website.html">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="hdr">
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="logo-tag">WebIP</span> Network Inspector</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="ip.html">IP Lookup</a>
+      <a href="website.html" class="active">Website</a>
+      <a href="history.html">History</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap page">
+  <div class="search-box">
+    <h1>Website Inspector</h1>
+    <p class="sub">Enter any public URL to get a full technical report: SEO, DNS, SSL, links, assets, tech stack and more.</p>
+    <div class="row">
+      <div class="inp-wrap">
+        <input type="url" id="url-input" placeholder="e.g. https://example.com or example.com" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="btn btn-p" id="inspect-btn">Inspect</button>
+    </div>
+    <div class="note" style="margin-top:12px">
+      ℹ Inspection runs client-side via a CORS proxy — the target site must be publicly reachable.
+      Some sites block third-party proxies; try another URL if inspection fails.
+    </div>
+  </div>
+
+  <div class="err-box" id="err-box" style="display:none"></div>
+
+  <div id="results">
+    <!-- Action bar -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+      <div>
+        <span id="ov-status" class="badge b-green">200</span>
+        <span id="ov-url" class="mono" style="font-size:13px;color:var(--muted-l);margin-left:10px;word-break:break-all"></span>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn btn-s btn-sm" id="copy-json">Copy JSON</button>
+        <button class="btn btn-s btn-sm" id="dl-json">⬇ Download</button>
+        <a class="btn btn-g btn-sm" href="history.html">🕐 History</a>
+      </div>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <button class="tab on" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="seo">SEO &amp; Audit</button>
+      <button class="tab" data-tab="dns">DNS</button>
+      <button class="tab" data-tab="links">
+        Links &amp; Assets
+        <span class="t-count" id="tc-int">0</span>
+      </button>
+      <button class="tab" data-tab="source">HTML Source</button>
+    </div>
+
+    <!-- ── OVERVIEW ── -->
+    <div class="tab-panel on" id="t-overview">
+      <div class="g2">
+        <!-- Meta overview -->
+        <div class="card">
+          <div class="card-hdr"><div class="cicon ci-cyan">📄</div><h3>Page Overview</h3></div>
+          <table class="kv" id="ov-kv"></table>
+        </div>
+
+        <!-- SSL -->
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <div class="card">
+            <div class="card-hdr"><div class="cicon ci-green">🔒</div><h3>SSL / HTTPS</h3></div>
+            <div id="ssl-box"></div>
+            <p style="color:var(--muted);font-size:12px;margin-top:10px">
+              Full certificate details (issuer, expiry, protocol) require server-side TLS inspection.
+              <a href="https://www.ssllabs.com/ssltest/" target="_blank" rel="noreferrer">Check on SSL Labs →</a>
+            </p>
+          </div>
+
+          <!-- Technologies -->
+          <div class="card">
+            <div class="card-hdr"><div class="cicon ci-purple">⚙️</div><h3>Technologies</h3></div>
+            <div id="tech-pills" class="pills gap"></div>
+            <p class="sec-lbl" style="margin-top:14px;margin-bottom:8px">Analytics</p>
+            <div id="analytics-pills" class="pills"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Open Graph & Twitter Card -->
+      <div class="g2" style="margin-top:18px">
+        <div class="card">
+          <div class="card-hdr"><div class="cicon ci-cyan">📘</div><h3>Open Graph</h3></div>
+          <div id="og-kv"></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><div class="cicon ci-cyan">🐦</div><h3>Twitter Card</h3></div>
+          <div id="tw-kv"></div>
+        </div>
+      </div>
+
+      <!-- Page summary -->
+      <div class="card" style="margin-top:18px">
+        <div class="card-hdr"><div class="cicon ci-amber">📊</div><h3>Page Summary</h3></div>
+        <div class="g3">
+          <div>
+            <p class="sec-lbl">Title</p>
+            <p id="ov-title" style="font-size:14px"></p>
+          </div>
+          <div style="grid-column:span 2">
+            <p class="sec-lbl">Description</p>
+            <p id="ov-desc" style="font-size:13.5px;color:var(--muted-l)"></p>
+          </div>
+        </div>
+      </div>
+    </div><!-- /overview -->
+
+    <!-- ── SEO & AUDIT ── -->
+    <div class="tab-panel" id="t-seo">
+      <div class="g2">
+        <div>
+          <p class="sec-lbl">SEO Audit</p>
+          <div id="seo-audit"></div>
+        </div>
+        <div>
+          <p class="sec-lbl">Accessibility</p>
+          <div id="a11y-audit"></div>
+          <p class="sec-lbl" style="margin-top:18px">Performance</p>
+          <div id="perf-audit"></div>
+        </div>
+      </div>
+
+      <!-- Headings -->
+      <div class="card" style="margin-top:20px">
+        <div class="card-hdr"><div class="cicon ci-cyan">📝</div><h3>Heading Structure</h3></div>
+        <table class="kv">
+          <tbody id="headings-table"></tbody>
+        </table>
+      </div>
+
+      <!-- JSON-LD -->
+      <div class="card" style="margin-top:18px">
+        <div class="card-hdr"><div class="cicon ci-purple">{ }</div><h3>JSON-LD Structured Data</h3></div>
+        <div class="src-wrap">
+          <pre class="src-pre" id="jsonld-box" style="max-height:240px"></pre>
+        </div>
+      </div>
+    </div><!-- /seo -->
+
+    <!-- ── DNS ── -->
+    <div class="tab-panel" id="t-dns">
+      <div class="g2">
+        <div>
+          <p class="sec-lbl">DNS Records</p>
+          <div id="dns-all"></div>
+          <div class="note" style="margin-top:10px">DNS via Google DNS-over-HTTPS (dns.google)</div>
+        </div>
+        <div>
+          <p class="sec-lbl">robots.txt</p>
+          <div class="src-wrap gap">
+            <pre class="src-pre" id="robots-box" style="max-height:200px">Fetching…</pre>
+          </div>
+          <p class="sec-lbl" style="margin-top:16px">sitemap.xml</p>
+          <div class="src-wrap">
+            <pre class="src-pre" id="sitemap-box" style="max-height:200px">Fetching…</pre>
+          </div>
+          <div style="margin-top:14px">
+            <p class="sec-lbl">WHOIS</p>
+            <p style="color:var(--muted-l);font-size:13px;margin-bottom:8px">WHOIS requires TCP port 43 (server-side only). Use an external tool:</p>
+            <a class="btn btn-s btn-sm" id="whois-link" href="#" target="_blank" rel="noreferrer">🔍 WHOIS Lookup →</a>
+          </div>
+        </div>
+      </div>
+    </div><!-- /dns -->
+
+    <!-- ── LINKS & ASSETS ── -->
+    <div class="tab-panel" id="t-links">
+      <div class="g2">
+        <div>
+          <p class="sec-lbl">Internal Links <span class="t-count" id="tc-int2"></span></p>
+          <div id="int-links"></div>
+          <p class="sec-lbl" style="margin-top:18px">External Links <span class="t-count" id="tc-ext"></span></p>
+          <div id="ext-links"></div>
+        </div>
+        <div>
+          <p class="sec-lbl">Images <span class="t-count" id="tc-img"></span></p>
+          <div id="img-files" class="gap"></div>
+          <p class="sec-lbl">JavaScript <span class="t-count" id="tc-js"></span></p>
+          <div id="js-files" class="gap"></div>
+          <p class="sec-lbl">CSS <span class="t-count" id="tc-css"></span></p>
+          <div id="css-files"></div>
+        </div>
+      </div>
+    </div><!-- /links -->
+
+    <!-- ── HTML SOURCE ── -->
+    <div class="tab-panel" id="t-source">
+      <div class="src-wrap">
+        <div class="src-bar">
+          <input type="text" id="src-search" placeholder="Search source…">
+          <button class="copy-btn" id="copy-src-btn">Copy</button>
+        </div>
+        <pre class="src-pre" id="src-pre"></pre>
+      </div>
+      <p style="color:var(--muted);font-size:12px;margin-top:8px">Source is capped at 500 KB. Rendered via CORS proxy — may differ from browser view.</p>
+    </div><!-- /source -->
+
+  </div><!-- #results -->
+</main>
+
+<footer>
+  <div class="wrap">
+    <a href="index.html">WebIP</a> &nbsp;·&nbsp;
+    HTML via <a href="https://allorigins.win" target="_blank" rel="noreferrer">AllOrigins</a> proxy &nbsp;·&nbsp;
+    DNS via <a href="https://developers.google.com/speed/public-dns/docs/doh" target="_blank" rel="noreferrer">Google DoH</a> &nbsp;·&nbsp;
+    Free &amp; no tracking
+  </div>
+</footer>
+
+<div id="toasts"></div>
+<script type="module" src="js/website.js"></script>
+</body>
+</html>
