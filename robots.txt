@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /history.html
 
 Sitemap: https://webip.drexxora.name.ng/sitemap.xml
